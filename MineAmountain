@@ -1,0 +1,68 @@
+wait("0.2")
+if not game:IsLoaded() then game.Loaded:Wait() end
+local BouldersFolder = workspace:WaitForChild("MountainDecorations"):WaitForChild("Boulders")
+
+local RarityColors = {
+    ["Common"] = Color3.fromRGB(150, 150, 150),    -- Abu-abu
+    ["Uncommon"] = Color3.fromRGB(85, 255, 127),   -- Hijau
+    ["Rare"] = Color3.fromRGB(85, 170, 255),       -- Biru (Gildrite)
+    ["Epic"] = Color3.fromRGB(170, 0, 255),        -- Ungu
+    ["Legendary"] = Color3.fromRGB(255, 215, 0)    -- Emas
+}
+
+local function createESP(boulder)
+    if not boulder:IsA("Model") and not boulder:IsA("BasePart") then return end
+    if boulder:FindFirstChild("BoulderESP") then return end
+
+    local rarity = boulder:GetAttribute("Rarity")
+    local boulderName = boulder:GetAttribute("BoulderName") or boulder.Name
+    
+    if not rarity then return end 
+
+    local color = RarityColors[rarity] or Color3.fromRGB(255, 255, 255)
+
+    local hp = boulder:GetAttribute("HP")
+    local maxHp = boulder:GetAttribute("MaxHP")
+    local hpText = ""
+    
+    if hp and maxHp and maxHp > 0 then
+        local hpPercent = math.floor((hp / maxHp) * 100)
+        hpText = string.format("\nHP: %d%%", hpPercent)
+    end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "BoulderESP"
+    billboard.Adornee = boulder
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 4, 0)
+    billboard.AlwaysOnTop = true -- ESP Wallhack effect
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = billboard
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = string.format("[%s] %s%s", rarity, boulderName, hpText)
+    textLabel.TextColor3 = color
+    textLabel.TextStrokeTransparency = 0.2
+    textLabel.TextSize = 14
+    textLabel.Font = Enum.Font.Code
+
+    billboard.Parent = boulder
+    
+    boulder:GetAttributeChangedSignal("HP"):Connect(function()
+        local currentHp = boulder:GetAttribute("HP")
+        if currentHp and maxHp and maxHp > 0 then
+            local hpPercent = math.floor((currentHp / maxHp) * 100)
+            textLabel.Text = string.format("[%s] %s\nHP: %d%%", rarity, boulderName, hpPercent)
+        end
+    end)
+end
+
+for _, boulder in ipairs(BouldersFolder:GetChildren()) do
+    createESP(boulder)
+end
+
+BouldersFolder.ChildAdded:Connect(function(boulder)
+    task.wait(0.1) -- Jeda sedikit untuk memastikan semua Attribute sudah dipasang oleh server
+    createESP(boulder)
+end)
